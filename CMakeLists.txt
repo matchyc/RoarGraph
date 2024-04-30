@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.17)
+
+project(efanna2e)
+add_subdirectory(thirdparty/DiskANN)
+include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/robin-map/include)
+add_subdirectory(thirdparty/robin-map)
+set(Boost_INCLUDEDIRS "/usr/include/boost")
+set(Boost_ROOT "/usr/include")
+set(Boost_DIR "/usr/include/boost")
+
+# set(Boost_NO_SYSTEM_PATHS OFF)
+find_package(Boost COMPONENTS program_options REQUIRED)
+message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+include_directories(${Boost_INCLUDE_DIR})
+#OpenMP
+find_package(OpenMP)
+if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+else()
+    message(FATAL_ERROR "no OpenMP supprot")
+endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free")
+
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -DDEBUG -Wall -Wextra -march=native -mtune=native -fsanitize=address -lasan -fsanitize=leak")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -DDEBUG -Wall -Wextra -march=native -mtune=native")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -DNDEBUG -march=native -mtune=native -ftree-vectorize -Wall -DINFO")
+# add_definitions (-std=c++14 -O3 -lboost -march=native -Wall -DINFO)
+
+add_subdirectory(src)
+add_subdirectory(tests)
