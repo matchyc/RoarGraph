@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     float *aligned_data_sq = nullptr;
     efanna2e::Parameters parameters;
     efanna2e::load_data<float>(base_data_file.c_str(), base_num, base_dim, data_bp);
-    efanna2e::load_data<float>(sampled_query_data_file.c_str(), sq_num, sq_dim, data_sq);
+    // efanna2e::load_data<float>(sampled_query_data_file.c_str(), sq_num, sq_dim, data_sq);
     aligned_data_bp = data_bp;
     aligned_data_sq = data_sq;
     // aligned_data_bp = efanna2e::data_align(data_bp, base_num, base_dim);

@@ -206,7 +206,7 @@ void load_data(const char *filename, uint32_t &points_num, uint32_t &dim, T *&da
         std::cerr << "Read file incompleted! filename:" << std::string(filename) << std::endl;
         throw std::runtime_error("Data file size wrong!");
     }
-    std::cout << "load data from file: " << filename << " points_num: " << points_num << " dim: " << dim << std::endl;
+    std::cout << "Finish load data from file: " << filename << " points_num: " << points_num << " dim: " << dim << std::endl;
     in.close();
 }
 

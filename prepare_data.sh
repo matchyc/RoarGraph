@@ -19,15 +19,18 @@ mkdir -p data/$1
 
 if [ "$1" == "t2i-10M" ]; then
     echo "dataset t2i"
-    need_size=$((200*4*10000000+8))
-    query_10k_size=$((200*4*10000+8))
+    need_size=$((200*4*10000000+8-1))
+    query_10k_size=$((200*4*10000+8-1))
     # download the dataset
     if [ ! -e ./data/$1/gt.10k.ibin ]; then
         curl -r 0-${need_size} -o data/$1/base.10M.fbin https://storage.yandexcloud.net/yandex-research/ann-datasets/T2I/base.10M.fbin
         curl -r 0-${need_size} -o data/$1/query.train.10M.fbin https://storage.yandexcloud.net/yandex-research/ann-datasets/T2I/query.learn.50M.fbin
         curl -r 0-${query_10k_size} -o data/$1/query.10k.fbin https://storage.yandexcloud.net/yandex-research/ann-datasets/T2I/query.public.100K.fbin
-        curl -o data/$1/gt.10k.ibin https://zenodo.org/records/11073098/files/t2i.gt.10k.ibin
+        curl -o data/$1/gt.10k.ibin https://zenodo.org/records/11090378/files/t2i.gt.10k.ibin
     fi
+    curl -o data/$1/gt.10k.ibin https://zenodo.org/records/11090378/files/t2i.gt.10k.ibin
+    python3 change_meta_data_in_file.py ./data/t2i-10M/query.train.10M.fbin 10000000
+    python change_meta_data_in_file.py ./data/t2i-10M/query.10k.fbin 10000
 elif [ "$1" == "laion-10M" ]; then
     echo "dataset laion"
     # download the dataset
@@ -48,8 +51,8 @@ elif [ "$1" == "laion-10M" ]; then
     # export text and img simultaneously, watch out the DRAM.
     python3 export_fbin_from_npy.py
     if [ ! -e ./data/$1/gt.10k.ibin ]; then
-        curl -o data/$1/query.10k.fbin https://zenodo.org/records/11073098/files/laion.query.10k.fbin
-        curl -o data/$1/gt.10k.ibin https://zenodo.org/records/11073098/files/laion.gt.10k.ibin
+        curl -o data/$1/query.10k.fbin https://zenodo.org/records/11090378/files/laion.query.10k.fbin
+        curl -o data/$1/gt.10k.ibin https://zenodo.org/records/11090378/files/laion.gt.10k.ibin
     fi
 elif [ "$1" == "webvid-2.5M" ]; then
     echo "dataset webvid"
@@ -60,8 +63,12 @@ elif [ "$1" == "webvid-2.5M" ]; then
         # python3 prepare_for_clip_webvid.py
     fi
 
+    if [ ! -e ./data/clip-webvid-2.5M/query.train.2.5M.fbin ]; then
+        curl -o data/clip-webvid-2.5M/query.train.2.5M.fbin https://zenodo.org/records/11090378/files/webvid.query.train.2.5M.fbin
+    fi
+
     if [ ! -e ./data/clip-webvid-2.5M/gt.10k.ibin ]; then
-        curl -o data/clip-webvid-2.5M/query.10k.fbin https://zenodo.org/records/11073098/files/webvid.query.10k.fbin
-        curl -o data/clip-webvid-2.5M/gt.10k.ibin https://zenodo.org/records/11073098/files/webvid.gt.10k.ibin
+        curl -o data/clip-webvid-2.5M/query.10k.fbin https://zenodo.org/records/11090378/files/webvid.query.10k.fbin
+        curl -o data/clip-webvid-2.5M/gt.10k.ibin https://zenodo.org/records/11090378/files/webvid.gt.10k.ibin
     fi
 fi
