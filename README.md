@@ -28,6 +28,10 @@ urllib
 tarfile
 ```
 
+```
+sudo apt install libaio-dev libgoogle-perftools-dev clang-format libboost-all-dev libmkl-full-dev
+```
+
 ```bash
 git clone --recursive https://github.com/matchyc/RoarGraph.git
 ```
