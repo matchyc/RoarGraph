@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Chen"
+  given-names: "Meng"
+  orcid: "https://orcid.org/0009-0008-7394-7154"
+title: "RoarGraph: A Projected Bipartite Graph for Efficient Cross-Modal Approximate Nearest Neighbor Search"
+version: 1.0.0
+doi: https://doi.org/10.5281/zenodo.11090378
+date-released: 2024-06-05
+url: "https://github.com/matchyc/RoarGraph"
