@@ -2,3 +2,6 @@ build/
 data/
 test.sh
 test.py
+pyroar/*
+!pyroar/setup.py
+!pyroar/index_bindings.cpp

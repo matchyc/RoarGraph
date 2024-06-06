@@ -37,6 +37,10 @@ class IndexBipartite : public Index {
 
     void BuildRoarGraph(size_t n_sq, const float *sq_data, size_t n_bp, const float *bp_data,
                                 const Parameters &parameters);
+    void BuildRoarGraphwithData(size_t n_sq, const float *sq_data, size_t n_bp, const float *bp_data,
+                                const Parameters &parameters);
+    void BuildRoarGraphwithDatanoConn(size_t n_sq, const float *sq_data, size_t n_bp, const float *bp_data,
+                                const Parameters &parameters);
     virtual void Build(size_t n, const float *data, const Parameters &parameters) override;
 
     inline void SetBipartiteParameters(const Parameters &parameters) {}
@@ -73,6 +77,7 @@ class IndexBipartite : public Index {
     void CalculateProjectionep();
 
     void LinkProjection(const Parameters &parameters);
+    void LinkProjectionNoConn(const Parameters &parameters);
 
     // void LinkBase(const Parameters &parameters, SimpleNeighbor *simple_graph);
 
@@ -107,6 +112,11 @@ class IndexBipartite : public Index {
     void LoadNsgGraph(const char *filename);
 
     void LoadLearnBaseKNN(const char *filename);
+
+    void SetLearnBaseKNN(const uint32_t* learn_base_knn, uint32_t npts, uint32_t k_dim);
+
+    void SearchRoarGraphPy(const float *query, size_t k, size_t &qid, uint32_t L_pq,
+                                               unsigned *indices, float* res_dists);
 
     void LoadBaseLearnKNN(const char *filename);
 

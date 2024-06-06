@@ -14,9 +14,10 @@ Index::Index(const size_t dimension, const size_t n, Metric metric = L2)
             std::cout << "Inside using L2 distance." << std::endl;
             break;
         case efanna2e::COSINE:
+            distance_ = new DistanceInnerProduct();
+            break;
         case efanna2e::INNER_PRODUCT:
             distance_ = new DistanceInnerProduct();
-            std::cout << "Inside using IP distance after normalization." << std::endl;
             break;
         default:
             distance_ = new DistanceL2();

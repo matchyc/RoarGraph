@@ -37,55 +37,56 @@ class DistanceL2 : public Distance {
 
    public:
     float compare(const float *x, const float *y, unsigned d) const {
-        __m512 msum0 = _mm512_setzero_ps();
+        // __m512 msum0 = _mm512_setzero_ps();
 
-        while (d >= 16) {
-            __m512 mx = _mm512_loadu_ps(x);
-            x += 16;
-            __m512 my = _mm512_loadu_ps(y);
-            y += 16;
-            const __m512 a_m_b1 = mx - my;
-            msum0 += a_m_b1 * a_m_b1;
-            d -= 16;
-        }
+        // while (d >= 16) {
+        //     __m512 mx = _mm512_loadu_ps(x);
+        //     x += 16;
+        //     __m512 my = _mm512_loadu_ps(y);
+        //     y += 16;
+        //     const __m512 a_m_b1 = mx - my;
+        //     msum0 += a_m_b1 * a_m_b1;
+        //     d -= 16;
+        // }
 
-        __m256 msum1 = _mm512_extractf32x8_ps(msum0, 1);
-        msum1 += _mm512_extractf32x8_ps(msum0, 0);
+        // __m256 msum1 = _mm512_extractf32x8_ps(msum0, 1);
+        // msum1 += _mm512_extractf32x8_ps(msum0, 0);
 
-        if (d >= 8) {
-            __m256 mx = _mm256_loadu_ps(x);
-            x += 8;
-            __m256 my = _mm256_loadu_ps(y);
-            y += 8;
-            const __m256 a_m_b1 = mx - my;
-            msum1 += a_m_b1 * a_m_b1;
-            d -= 8;
-        }
+        // if (d >= 8) {
+        //     __m256 mx = _mm256_loadu_ps(x);
+        //     x += 8;
+        //     __m256 my = _mm256_loadu_ps(y);
+        //     y += 8;
+        //     const __m256 a_m_b1 = mx - my;
+        //     msum1 += a_m_b1 * a_m_b1;
+        //     d -= 8;
+        // }
 
-        __m128 msum2 = _mm256_extractf128_ps(msum1, 1);
-        msum2 += _mm256_extractf128_ps(msum1, 0);
+        // __m128 msum2 = _mm256_extractf128_ps(msum1, 1);
+        // msum2 += _mm256_extractf128_ps(msum1, 0);
 
-        if (d >= 4) {
-            __m128 mx = _mm_loadu_ps(x);
-            x += 4;
-            __m128 my = _mm_loadu_ps(y);
-            y += 4;
-            const __m128 a_m_b1 = mx - my;
-            msum2 += a_m_b1 * a_m_b1;
-            d -= 4;
-        }
+        // if (d >= 4) {
+        //     __m128 mx = _mm_loadu_ps(x);
+        //     x += 4;
+        //     __m128 my = _mm_loadu_ps(y);
+        //     y += 4;
+        //     const __m128 a_m_b1 = mx - my;
+        //     msum2 += a_m_b1 * a_m_b1;
+        //     d -= 4;
+        // }
 
-        if (d > 0) {
-            __m128 mx = masked_read(d, x);
-            __m128 my = masked_read(d, y);
-            __m128 a_m_b1 = mx - my;
-            msum2 += a_m_b1 * a_m_b1;
-        }
+        // if (d > 0) {
+        //     __m128 mx = masked_read(d, x);
+        //     __m128 my = masked_read(d, y);
+        //     __m128 a_m_b1 = mx - my;
+        //     msum2 += a_m_b1 * a_m_b1;
+        // }
 
-        msum2 = _mm_hadd_ps(msum2, msum2);
-        msum2 = _mm_hadd_ps(msum2, msum2);
-        return _mm_cvtss_f32(msum2);
+        // msum2 = _mm_hadd_ps(msum2, msum2);
+        // msum2 = _mm_hadd_ps(msum2, msum2);
+        // return _mm_cvtss_f32(msum2);
         // return result;
+        return 0;
     }
 };
 
@@ -106,122 +107,136 @@ class DistanceInnerProduct : public Distance {
         // cannot use AVX2 _mm_mask_set1_epi32
     }
     float compare(const float *a, const float *b, unsigned size) const {
-
-#ifdef __GNUC__
-#ifdef __AVX__
-#define AVX_DOT(addr1, addr2, dest, tmp1, tmp2) \
-    tmp1 = _mm256_load_ps(addr1);               \
-    tmp2 = _mm256_load_ps(addr2);               \
-    tmp1 = _mm256_mul_ps(tmp1, tmp2);           \
-    dest = _mm256_add_ps(dest, tmp1);
-
-#else
-#ifdef __SSE2__
-#define SSE_DOT(addr1, addr2, dest, tmp1, tmp2) \
-    tmp1 = _mm128_loadu_ps(addr1);              \
-    tmp2 = _mm128_loadu_ps(addr2);              \
-    tmp1 = _mm128_mul_ps(tmp1, tmp2);           \
-    dest = _mm128_add_ps(dest, tmp1);
-        __m128 sum;
-        __m128 l0, l1, l2, l3;
-        __m128 r0, r1, r2, r3;
-        unsigned D = (size + 3) & ~3U;
-        unsigned DR = D % 16;
-        unsigned DD = D - DR;
-        const float *l = a;
-        const float *r = b;
-        const float *e_l = l + DD;
-        const float *e_r = r + DD;
-        float unpack[4] __attribute__((aligned(16))) = {0, 0, 0, 0};
-
-        sum = _mm_load_ps(unpack);
-        switch (DR) {
-            case 12:
-                SSE_DOT(e_l + 8, e_r + 8, sum, l2, r2);
-            case 8:
-                SSE_DOT(e_l + 4, e_r + 4, sum, l1, r1);
-            case 4:
-                SSE_DOT(e_l, e_r, sum, l0, r0);
-            default:
-                break;
+        __m256 msum0 = _mm256_setzero_ps();
+        for (int i = 0; i < size; i += 8) {
+            __m256 mx = _mm256_loadu_ps(a + i);
+            __m256 my = _mm256_loadu_ps(b + i);
+            const __m256 a_m_b1 = _mm256_mul_ps(mx, my);
+            msum0 = _mm256_add_ps(msum0, a_m_b1);
         }
-        for (unsigned i = 0; i < DD; i += 16, l += 16, r += 16) {
-            SSE_DOT(l, r, sum, l0, r0);
-            SSE_DOT(l + 4, r + 4, sum, l1, r1);
-            SSE_DOT(l + 8, r + 8, sum, l2, r2);
-            SSE_DOT(l + 12, r + 12, sum, l3, r3);
+        float result[8];
+        _mm256_storeu_ps(result, msum0);
+        float sum = 0;
+        for (int i = 0; i < 8; i++) {
+            sum += result[i];
         }
-        _mm_storeu_ps(unpack, sum);
-        result += unpack[0] + unpack[1] + unpack[2] + unpack[3];
-#else
 
-        float dot0, dot1, dot2, dot3;
-        const float *last = a + size;
-        const float *unroll_group = last - 3;
+        return -1.0 * sum;
+// #ifdef __GNUC__
+// #ifdef __AVX__
+// #define AVX_DOT(addr1, addr2, dest, tmp1, tmp2) \
+//     tmp1 = _mm256_load_ps(addr1);               \
+//     tmp2 = _mm256_load_ps(addr2);               \
+//     tmp1 = _mm256_mul_ps(tmp1, tmp2);           \
+//     dest = _mm256_add_ps(dest, tmp1);
 
-        /* Process 4 items with each loop for efficiency. */
-        while (a < unroll_group) {
-            dot0 = a[0] * b[0];
-            dot1 = a[1] * b[1];
-            dot2 = a[2] * b[2];
-            dot3 = a[3] * b[3];
-            result += dot0 + dot1 + dot2 + dot3;
-            a += 4;
-            b += 4;
-        }
-        /* Process last 0-3 pixels.  Not needed for standard vector lengths. */
-        while (a < last) {
-            result += *a++ * *b++;
-        }
-#endif
-#endif
-#endif
+// #else
+// #ifdef __SSE2__
+// #define SSE_DOT(addr1, addr2, dest, tmp1, tmp2) \
+//     tmp1 = _mm128_loadu_ps(addr1);              \
+//     tmp2 = _mm128_loadu_ps(addr2);              \
+//     tmp1 = _mm128_mul_ps(tmp1, tmp2);           \
+//     dest = _mm128_add_ps(dest, tmp1);
+//         __m128 sum;
+//         __m128 l0, l1, l2, l3;
+//         __m128 r0, r1, r2, r3;
+//         unsigned D = (size + 3) & ~3U;
+//         unsigned DR = D % 16;
+//         unsigned DD = D - DR;
+//         const float *l = a;
+//         const float *r = b;
+//         const float *e_l = l + DD;
+//         const float *e_r = r + DD;
+//         float unpack[4] __attribute__((aligned(16))) = {0, 0, 0, 0};
+
+//         sum = _mm_load_ps(unpack);
+//         switch (DR) {
+//             case 12:
+//                 SSE_DOT(e_l + 8, e_r + 8, sum, l2, r2);
+//             case 8:
+//                 SSE_DOT(e_l + 4, e_r + 4, sum, l1, r1);
+//             case 4:
+//                 SSE_DOT(e_l, e_r, sum, l0, r0);
+//             default:
+//                 break;
+//         }
+//         for (unsigned i = 0; i < DD; i += 16, l += 16, r += 16) {
+//             SSE_DOT(l, r, sum, l0, r0);
+//             SSE_DOT(l + 4, r + 4, sum, l1, r1);
+//             SSE_DOT(l + 8, r + 8, sum, l2, r2);
+//             SSE_DOT(l + 12, r + 12, sum, l3, r3);
+//         }
+//         _mm_storeu_ps(unpack, sum);
+//         result += unpack[0] + unpack[1] + unpack[2] + unpack[3];
+// #else
+
+//         float dot0, dot1, dot2, dot3;
+//         const float *last = a + size;
+//         const float *unroll_group = last - 3;
+
+//         /* Process 4 items with each loop for efficiency. */
+//         while (a < unroll_group) {
+//             dot0 = a[0] * b[0];
+//             dot1 = a[1] * b[1];
+//             dot2 = a[2] * b[2];
+//             dot3 = a[3] * b[3];
+//             result += dot0 + dot1 + dot2 + dot3;
+//             a += 4;
+//             b += 4;
+//         }
+//         /* Process last 0-3 pixels.  Not needed for standard vector lengths. */
+//         while (a < last) {
+//             result += *a++ * *b++;
+//         }
+// #endif
+// #endif
+// #endif
         // using avx-512
-        __m512 msum0 = _mm512_setzero_ps();
+        // __m512 msum0 = _mm512_setzero_ps();
 
-        while (size >= 16) {
-            __m512 mx = _mm512_loadu_ps(a);
-            a += 16;
-            __m512 my = _mm512_loadu_ps(b);
-            b += 16;
-            msum0 = _mm512_add_ps(msum0, _mm512_mul_ps(mx, my));
-            size -= 16;
-        }
+        // while (size >= 16) {
+        //     __m512 mx = _mm512_loadu_ps(a);
+        //     a += 16;
+        //     __m512 my = _mm512_loadu_ps(b);
+        //     b += 16;
+        //     msum0 = _mm512_add_ps(msum0, _mm512_mul_ps(mx, my));
+        //     size -= 16;
+        // }
 
-        __m256 msum1 = _mm512_extractf32x8_ps(msum0, 1);
-        msum1 += _mm512_extractf32x8_ps(msum0, 0);
+        // __m256 msum1 = _mm512_extractf32x8_ps(msum0, 1);
+        // msum1 += _mm512_extractf32x8_ps(msum0, 0);
 
-        if (size >= 8) {
-            __m256 mx = _mm256_loadu_ps(a);
-            a += 8;
-            __m256 my = _mm256_loadu_ps(b);
-            b += 8;
-            msum1 = _mm256_add_ps(msum1, _mm256_mul_ps(mx, my));
-            size -= 8;
-        }
+        // if (size >= 8) {
+        //     __m256 mx = _mm256_loadu_ps(a);
+        //     a += 8;
+        //     __m256 my = _mm256_loadu_ps(b);
+        //     b += 8;
+        //     msum1 = _mm256_add_ps(msum1, _mm256_mul_ps(mx, my));
+        //     size -= 8;
+        // }
 
-        __m128 msum2 = _mm256_extractf128_ps(msum1, 1);
-        msum2 += _mm256_extractf128_ps(msum1, 0);
+        // __m128 msum2 = _mm256_extractf128_ps(msum1, 1);
+        // msum2 += _mm256_extractf128_ps(msum1, 0);
 
-        if (size >= 4) {
-            __m128 mx = _mm_loadu_ps(a);
-            a += 4;
-            __m128 my = _mm_loadu_ps(b);
-            b += 4;
-            msum2 = _mm_add_ps(msum2, _mm_mul_ps(mx, my));
-            size -= 4;
-        }
+        // if (size >= 4) {
+        //     __m128 mx = _mm_loadu_ps(a);
+        //     a += 4;
+        //     __m128 my = _mm_loadu_ps(b);
+        //     b += 4;
+        //     msum2 = _mm_add_ps(msum2, _mm_mul_ps(mx, my));
+        //     size -= 4;
+        // }
 
-        if (size > 0) {
-            __m128 mx = masked_read(size, a);
-            __m128 my = masked_read(size, b);
-            msum2 = _mm_add_ps(msum2, _mm_mul_ps(mx, my));
-        }
+        // if (size > 0) {
+        //     __m128 mx = masked_read(size, a);
+        //     __m128 my = masked_read(size, b);
+        //     msum2 = _mm_add_ps(msum2, _mm_mul_ps(mx, my));
+        // }
 
-        msum2 = _mm_hadd_ps(msum2, msum2);
-        msum2 = _mm_hadd_ps(msum2, msum2);
-        return -1.0 * _mm_cvtss_f32(msum2);
-        // return result;
+        // msum2 = _mm_hadd_ps(msum2, msum2);
+        // msum2 = _mm_hadd_ps(msum2, msum2);
+        // return -1.0 * _mm_cvtss_f32(msum2);
+        // return -1.0 * result;
     }
 };
 class DistanceFastL2 : public DistanceInnerProduct {
