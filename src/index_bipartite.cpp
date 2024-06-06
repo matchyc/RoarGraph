@@ -206,7 +206,7 @@ void IndexBipartite::BuildRoarGraph(size_t n_sq, const float *sq_data, size_t n_
     assert(projection_ep_ < nd_);
     std::cout << "begin link projection" << std::endl;
     LinkProjection(parameters);
-    std::cout << std::endl;
+    // std::cout << std::endl;
     // std::cout << "Starting collect points" << std::endl;
     // auto co_s = std::chrono::high_resolution_clock::now();
     // CollectPoints(parameters);
@@ -234,7 +234,7 @@ void IndexBipartite::BuildRoarGraph(size_t n_sq, const float *sq_data, size_t n_
 }
 void IndexBipartite::BuildRoarGraphwithData(size_t n_sq, const float *sq_data, size_t n_bp, const float *bp_data,
                                     const Parameters &parameters) {
-    std::cout << "start build bipartite index" << std::endl;
+    // std::cout << "start build bipartite index" << std::endl;
     auto s = std::chrono::high_resolution_clock::now();
     uint32_t M_sq = parameters.Get<uint32_t>("M_sq");
     // uint32_t M_bp = parameters.Get<uint32_t>("M_bp");
@@ -301,7 +301,7 @@ void IndexBipartite::BuildRoarGraphwithData(size_t n_sq, const float *sq_data, s
     assert(projection_ep_ < nd_);
     // std::cout << "begin link projection" << std::endl;
     LinkProjection(parameters);
-    std::cout << std::endl;
+    // std::cout << std::endl;
     // std::cout << "Starting collect points" << std::endl;
     // auto co_s = std::chrono::high_resolution_clock::now();
     // CollectPoints(parameters);
@@ -1162,7 +1162,7 @@ void IndexBipartite::TrainingLink2Projection(const Parameters &parameters, Simpl
         vis_order_sq.push_back(i);
     }
 
-    #pragma omp parallel for schedule(static, 100)
+    #pragma omp parallel for schedule(dynamic, 100)
     for (uint32_t it_sq = 0; it_sq < u32_nd_sq_; ++it_sq) {
         uint32_t sq = vis_order_sq[it_sq];
         // boost::dynamic_bitset<> visited{u32_total_pts_, false};
@@ -1200,7 +1200,7 @@ void IndexBipartite::TrainingLink2Projection(const Parameters &parameters, Simpl
     std::cout << std::endl;
     std::atomic<uint32_t> degree_cnt(0);
     std::atomic<uint32_t> zero_cnt(0);
-#pragma omp parallel for schedule(static, 100)
+#pragma omp parallel for schedule(dynamic, 100)
     for (uint32_t i = 0; i < vis_order.size(); ++i) {
         uint32_t node = vis_order[i];
         if (projection_graph_[node].size() < M_pjbp) {
@@ -1248,7 +1248,7 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
     }
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-#pragma omp parallel for schedule(static, 100)
+#pragma omp parallel for schedule(dynamic, 100)
     for (uint32_t it_sq = 0; it_sq < u32_nd_sq_; ++it_sq) {
         uint32_t sq = vis_order_sq[it_sq];
 
@@ -1270,6 +1270,8 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
             if (nn_base[i] == cur_tgt) {
                 continue;
             }
+            // prefetch
+            _mm_prefetch((const char *)(data_bp_ + dimension_ * (uint64_t)nn_base[i]), _MM_HINT_T0);
             float distance = distance_->compare(data_bp_ + dimension_ * (uint64_t)nn_base[i], data_bp_ + dimension_ * (uint64_t)cur_tgt,
                                                 (unsigned)dimension_);
             full_retset.push_back(Neighbor(nn_base[i], distance, false));
@@ -1288,15 +1290,15 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
         // }
     }
 
-    std::cout << std::endl;
-#pragma omp parallel for schedule(static, 100)
-    for (uint32_t i = 0; i < vis_order.size(); ++i) {
-        uint32_t node = vis_order[i];
-        ProjectionAddReverse(node, parameters);
-    }
+    // std::cout << std::endl;
+// #pragma omp parallel for schedule(dynamic, 100)
+//     for (uint32_t i = 0; i < vis_order.size(); ++i) {
+//         uint32_t node = vis_order[i];
+//         ProjectionAddReverse(node, parameters);
+//     }
 
 
-#pragma omp parallel for schedule(static, 2048)
+#pragma omp parallel for schedule(dynamic, 100)
     for (uint32_t i = 0; i < vis_order.size(); ++i) {
         size_t node = (size_t)vis_order[i];
         if (projection_graph_[node].size() > M_pjbp) {
@@ -1321,7 +1323,7 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
             PruneBiSearchBaseGetBase(full_retset, data_bp_ + dimension_ * (size_t)node, node, parameters, prune_list);
             {
                 LockGuard guard(locks_[node]);
-                projection_graph_[node].clear();
+                // projection_graph_[node].clear();
                 projection_graph_[node] = prune_list;
             }
         }
@@ -1332,45 +1334,45 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
     // save t2 - t1 in seconds in projection time
     auto projection_time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 
-    std::atomic<uint32_t> degree_cnt(0);
-    std::atomic<uint32_t> zero_cnt(0);
-#pragma omp parallel for schedule(static, 100)
-    for (uint32_t i = 0; i < vis_order.size(); ++i) {
-        uint32_t node = vis_order[i];
-        if (projection_graph_[node].size() < M_pjbp) {
-            // std::cout << "Warning: projection graph node " << node << " has less than M_pjbp neighbors." << std::endl;
-            degree_cnt.fetch_add(1);
-            if (projection_graph_[node].size() == 0) {
-                zero_cnt.fetch_add(1);
-            }
-        }
-    }
+//     std::atomic<uint32_t> degree_cnt(0);
+//     std::atomic<uint32_t> zero_cnt(0);
+// #pragma omp parallel for schedule(dynamic, 100)
+//     for (uint32_t i = 0; i < vis_order.size(); ++i) {
+//         uint32_t node = vis_order[i];
+//         if (projection_graph_[node].size() < M_pjbp) {
+//             // std::cout << "Warning: projection graph node " << node << " has less than M_pjbp neighbors." << std::endl;
+//             degree_cnt.fetch_add(1);
+//             if (projection_graph_[node].size() == 0) {
+//                 zero_cnt.fetch_add(1);
+//             }
+//         }
+//     }
     // std::cout << "Projection time: " << projection_time << std::endl;
     // std::cout << "Warning: " << degree_cnt.load() << " nodes have less than M_pjbp neighbors." << std::endl;
     // std::cout << "Warning: " << zero_cnt.load() << " nodes have no neighbors." << std::endl;
 
     // stats projection graph degree
-    float avg_degree = 0;
-    uint64_t total_degree = 0;
-    uint32_t max_degree = 0;
-    uint32_t min_degree = std::numeric_limits<uint32_t>::max();
-    for (uint32_t i = 0; i < u32_nd_; ++i) {
-        if (projection_graph_[i].size() > max_degree) {
-            max_degree = projection_graph_[i].size();
-        }
-        if (projection_graph_[i].size() < min_degree) {
-            min_degree = projection_graph_[i].size();
-        }
-        avg_degree += static_cast<float>(projection_graph_[i].size());
-        total_degree += projection_graph_[i].size();
-    }
+    // float avg_degree = 0;
+    // uint64_t total_degree = 0;
+    // uint32_t max_degree = 0;
+    // uint32_t min_degree = std::numeric_limits<uint32_t>::max();
+    // for (uint32_t i = 0; i < u32_nd_; ++i) {
+    //     if (projection_graph_[i].size() > max_degree) {
+    //         max_degree = projection_graph_[i].size();
+    //     }
+    //     if (projection_graph_[i].size() < min_degree) {
+    //         min_degree = projection_graph_[i].size();
+    //     }
+    //     avg_degree += static_cast<float>(projection_graph_[i].size());
+    //     total_degree += projection_graph_[i].size();
+    // }
     // std::cout << "total degree: " << total_degree << std::endl;
-    avg_degree /= (float)u32_nd_;
+    // avg_degree /= (float)u32_nd_;
     // std::cout << "After projection, average degree of projection graph: " << avg_degree << std::endl;
     // std::cout << "After projection, max degree of projection graph: " << max_degree << std::endl;
     // std::cout << "After projection, min degree of projection graph: " << min_degree << std::endl;
 
-    std::cout << std::endl;
+    // std::cout << std::endl;
 
     for (size_t i = 0; i < projection_graph_.size(); ++i) {
         // projection_graph_[i].clear();
@@ -1381,7 +1383,7 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
 
     t1 = std::chrono::high_resolution_clock::now();
 
-#pragma omp parallel for schedule(dynamic, 2048)
+#pragma omp parallel for schedule(dynamic, 100)
     for (uint32_t i = 0; i < nd_; ++i) {
         size_t node = vis_order[i];
         boost::dynamic_bitset<> visited{u32_nd_, false};
@@ -1413,7 +1415,7 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
 
     // std::cout << "finish connectivity enhancement" << std::endl;
 
-// #pragma omp parallel for schedule(dynamic, 2048)
+// #pragma omp parallel for schedule(dynamic, 100)
 //     for (uint32_t i = 0; i < nd_; ++i) {
 //         size_t node = vis_order[i];
 //         if (supply_nbrs_[node].size() > M_pjbp) {
@@ -1463,7 +1465,7 @@ void IndexBipartite::LinkProjection(const Parameters &parameters) {
     t2 = std::chrono::high_resolution_clock::now();
 
     // save t2 - t1 in seconds in connectivity enhancement time
-    auto connectivity_enhancement_time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
+    // auto connectivity_enhancement_time = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count();
 
     // std::cout << "Connectivity enhancement time: " << connectivity_enhancement_time << std::endl;
 }
@@ -1912,36 +1914,36 @@ void IndexBipartite::PruneProjectionInternalReverseCandidates(uint32_t src_node,
             }
         }
     }
-    start = 0;
-    while (result.size() < M_pjbp && (++start) < prune_queue.size()) {
-        auto &p = prune_queue[start];
-        bool occlude = false;
-        for (size_t i = 0; i < result.size(); ++i) {
-            if (p.id == result[i]) {
-                occlude = true;
-                break;
-            }
-            // efanna2e::prefetch_vector((char *)(data_bp_ + p.id * dimension_), dimension_ * sizeof(float));
-            float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
-                                           (unsigned)dimension_);
-            // float djk = l2_distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
-            //                                   (unsigned)dimension_);
-            // if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
-            //     djk = -djk;
-            // }
-            if (1.0 * djk < p.distance) {
-                occlude = true;
-                break;
-            }
-        }
-        if (!occlude) {
-            if (p.id != src_node) {
-                if (std::find(result.begin(), result.end(), p.id) == result.end()) {
-                    result.push_back(p.id);
-                }
-            }
-        }
-    }
+    // start = 0;
+    // while (result.size() < M_pjbp && (++start) < prune_queue.size()) {
+    //     auto &p = prune_queue[start];
+    //     bool occlude = false;
+    //     for (size_t i = 0; i < result.size(); ++i) {
+    //         if (p.id == result[i]) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //         // efanna2e::prefetch_vector((char *)(data_bp_ + p.id * dimension_), dimension_ * sizeof(float));
+    //         float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
+    //                                        (unsigned)dimension_);
+    //         // float djk = l2_distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
+    //         //                                   (unsigned)dimension_);
+    //         // if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
+    //         //     djk = -djk;
+    //         // }
+    //         if (1.3 * djk < p.distance) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //     }
+    //     if (!occlude) {
+    //         if (p.id != src_node) {
+    //             if (std::find(result.begin(), result.end(), p.id) == result.end()) {
+    //                 result.push_back(p.id);
+    //             }
+    //         }
+    //     }
+    // }
 
     // for (size_t i = 0; i < pruned_list.size() && result.size() < M_pjbp; ++i) {
     //     if (std::find(result.begin(), result.end(), pruned_list[i]) == result.end()) {
@@ -1984,7 +1986,7 @@ void IndexBipartite::PruneProjectionReverseCandidates(uint32_t src_node, const P
             }
             float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
                                            (unsigned)dimension_);
-            if (djk < p.distance) {
+            if (1.3 * djk < p.distance) {
                 occlude = true;
                 break;
             }
@@ -1996,30 +1998,30 @@ void IndexBipartite::PruneProjectionReverseCandidates(uint32_t src_node, const P
         }
     }
 
-    start = 0;
-    while (result.size() < M_pjbp && (++start) < prune_queue.size()) {
-        auto &p = prune_queue[start];
-        bool occlude = false;
-        for (size_t i = 0; i < result.size(); ++i) {
-            if (p.id == result[i]) {
-                occlude = true;
-                break;
-            }
-            float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
-                                           (unsigned)dimension_);
-            if (1.0 * djk < p.distance) {
-                occlude = true;
-                break;
-            }
-        }
-        if (!occlude) {
-            if (p.id != src_node) {
-                if (std::find(result.begin(), result.end(), p.id) == result.end()) {
-                    result.push_back(p.id);
-                }
-            }
-        }
-    }
+    // start = 0;
+    // while (result.size() < M_pjbp && (++start) < prune_queue.size()) {
+    //     auto &p = prune_queue[start];
+    //     bool occlude = false;
+    //     for (size_t i = 0; i < result.size(); ++i) {
+    //         if (p.id == result[i]) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //         float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[i],
+    //                                        (unsigned)dimension_);
+    //         if (1.3 * djk < p.distance) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //     }
+    //     if (!occlude) {
+    //         if (p.id != src_node) {
+    //             if (std::find(result.begin(), result.end(), p.id) == result.end()) {
+    //                 result.push_back(p.id);
+    //             }
+    //         }
+    //     }
+    // }
 
     for (size_t i = 0; i < pruned_list.size() && result.size() < M_pjbp; ++i) {
         if (std::find(result.begin(), result.end(), pruned_list[i]) == result.end()) {
@@ -2071,7 +2073,7 @@ void IndexBipartite::PruneBiSearchBaseGetBase(std::vector<Neighbor> &search_pool
                 break;
             }
             float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[t], dimension_);
-            if (djk < p.distance) {
+            if (1.3 * djk < p.distance) {
                 occlude = true;
                 break;
             }
@@ -2083,32 +2085,32 @@ void IndexBipartite::PruneBiSearchBaseGetBase(std::vector<Neighbor> &search_pool
         }
     }
 
-    start = 0;
-    while (result.size() < M_pjbp && (++start) < search_pool.size()) {
-        Neighbor &p = search_pool[start];
-        if (std::find(result.begin(), result.end(), p.id) != result.end()) {
-            continue;
-        }
-        bool occlude = false;
-        for (size_t t = 0; t < result.size(); ++t) {
-            if (p.id == result[t]) {
-                occlude = true;
-                break;
-            }
-            float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[t], dimension_);
-            if (1.0 * djk < p.distance) {
-                occlude = true;
-                break;
-            }
-        }
-        if (!occlude) {
-            if (p.id != tgt_base) {
-                if (std::find(result.begin(), result.end(), p.id) == result.end()) {
-                    result.push_back(p.id);
-                }
-            }
-        }
-    }
+    // start = 0;
+    // while (result.size() < M_pjbp && (++start) < search_pool.size()) {
+    //     Neighbor &p = search_pool[start];
+    //     if (std::find(result.begin(), result.end(), p.id) != result.end()) {
+    //         continue;
+    //     }
+    //     bool occlude = false;
+    //     for (size_t t = 0; t < result.size(); ++t) {
+    //         if (p.id == result[t]) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //         float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[t], dimension_);
+    //         if (1.3 * djk < p.distance) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //     }
+    //     if (!occlude) {
+    //         if (p.id != tgt_base) {
+    //             if (std::find(result.begin(), result.end(), p.id) == result.end()) {
+    //                 result.push_back(p.id);
+    //             }
+    //         }
+    //     }
+    // }
 
     for (size_t i = 1; i < base_pool.size() && result.size() < M_pjbp; ++i) {
         if (std::find(result.begin(), result.end(), base_pool[i].id) == result.end()) {
@@ -2308,7 +2310,7 @@ void IndexBipartite::PruneProjectionBaseSearchCandidates(std::vector<Neighbor> &
             // dimension_); if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
             //     dik = -dik;
             // }
-            if (djk < p.distance) {
+            if (1.3 * djk < p.distance) {
                 occlude = true;
                 break;
             }
@@ -2321,39 +2323,39 @@ void IndexBipartite::PruneProjectionBaseSearchCandidates(std::vector<Neighbor> &
             }
         }
     }
-    start = 0;
-    while (result.size() < M_pjbp && (++start) < search_pool.size()) {
-        Neighbor &p = search_pool[start];
-        bool occlude = false;
-        for (size_t t = 0; t < result.size(); ++t) {
-            if (p.id == result[t]) {
-                occlude = true;
-                break;
-            }
-            float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[t], dimension_);
-            // if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
-            //     djk = -djk;
-            // }
-            // float dik = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * src_node,
-            // dimension_); if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
-            //     dik = -dik;
-            // }
-            if (1.0 * djk < p.distance) {
-                occlude = true;
-                break;
-            }
-        }
-        if (!occlude) {
-            if (p.id != qid) {
-                // if (std::find(src_nbrs.begin(), src_nbrs.end(), p.id) == src_nbrs.end()) {
-                if (std::find(result.begin(), result.end(), p.id) == result.end()) {
-                    result.push_back(p.id);
-                }
-                // result.push_back(p.id);
-                // }
-            }
-        }
-    }
+    // start = 0;
+    // while (result.size() < M_pjbp && (++start) < search_pool.size()) {
+    //     Neighbor &p = search_pool[start];
+    //     bool occlude = false;
+    //     for (size_t t = 0; t < result.size(); ++t) {
+    //         if (p.id == result[t]) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //         float djk = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * result[t], dimension_);
+    //         // if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
+    //         //     djk = -djk;
+    //         // }
+    //         // float dik = distance_->compare(data_bp_ + dimension_ * p.id, data_bp_ + dimension_ * src_node,
+    //         // dimension_); if (metric_ == efanna2e::Metric::INNER_PRODUCT) {
+    //         //     dik = -dik;
+    //         // }
+    //         if (1.3 * djk < p.distance) {
+    //             occlude = true;
+    //             break;
+    //         }
+    //     }
+    //     if (!occlude) {
+    //         if (p.id != qid) {
+    //             // if (std::find(src_nbrs.begin(), src_nbrs.end(), p.id) == src_nbrs.end()) {
+    //             if (std::find(result.begin(), result.end(), p.id) == result.end()) {
+    //                 result.push_back(p.id);
+    //             }
+    //             // result.push_back(p.id);
+    //             // }
+    //         }
+    //     }
+    // }
 
     // for (size_t i = 0; i < search_pool.size() && result.size() < M_pjbp; ++i) {
     //     if (std::find(result.begin(), result.end(), search_pool[i].id) == result.end()) {
@@ -2463,7 +2465,7 @@ void IndexBipartite::CalculateProjectionep() {
     }
     projection_ep_ = closest;
     // projection_ep_ = min_idx;
-    std::cout << "projection ep: " << projection_ep_ << std::endl;
+    // std::cout << "projection ep: " << projection_ep_ << std::endl;
     delete[] center;
     delete[] distances;
 }
@@ -2847,7 +2849,7 @@ std::pair<uint32_t, uint32_t> IndexBipartite::SearchRoarGraph(const float *query
     return std::make_pair(cmps, hops);
 }
 
-void IndexBipartite::SearchRoarGraphPy(const float *query, size_t k, size_t &qid, uint32_t L_pq,
+uint32_t IndexBipartite::SearchRoarGraphPy(const float *query, size_t k, size_t &qid, uint32_t L_pq,
                                                unsigned *indices, float* res_dists) {
     // uint32_t L_pq = parameters.Get<uint32_t>("L_pq");
     NeighborPriorityQueue search_queue(L_pq);
@@ -2956,6 +2958,7 @@ void IndexBipartite::SearchRoarGraphPy(const float *query, size_t k, size_t &qid
         res_dists[i] = search_queue[i].distance;
     }
     // return std::make_pair(cmps, hops);
+    return cmps;
 }
 
 // uint32_t IndexBipartite::SearchProjectionGraph(const float *query, size_t k, size_t &qid, const Parameters
@@ -3179,11 +3182,14 @@ void IndexBipartite::LoadLearnBaseKNN(const char *filename) {
 
 void IndexBipartite::SetLearnBaseKNN(const uint32_t* learn_base_knn, uint32_t npts, uint32_t k_dim) {
     learn_base_knn_.resize(npts);
+#pragma omp parallel for
     for (uint32_t i = 0; i < npts; i++) {
         learn_base_knn_[i].resize(k_dim);
-        for (uint32_t j = 0; j < k_dim; j++) {
-            learn_base_knn_[i][j] = learn_base_knn[i * k_dim + j];
-        }
+        memcpy(learn_base_knn_[i].data(), learn_base_knn + i * k_dim, sizeof(uint32_t) * k_dim);
+        // for (uint32_t j = 0; j < k_dim; j++) {
+
+            // learn_base_knn_[i][j] = learn_base_knn[i * k_dim + j];
+        // }
     }
 }
 

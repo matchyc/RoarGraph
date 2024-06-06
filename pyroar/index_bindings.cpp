@@ -19,6 +19,12 @@
 #include <filesystem>
 #include <unistd.h>
 
+#include <faiss/IndexFlat.h>
+#include <faiss/IndexIVFPQ.h>
+#include <faiss/IndexIVFFlat.h>
+#include <faiss/AutoTune.h>
+#include <faiss/index_factory.h>
+
 #include "index_bipartite.h"
 #include "efanna2e/distance.h"
 #include "efanna2e/neighbor.h"
@@ -55,6 +61,7 @@ class IndexRoarGraph {
         const float* base_data_ptr = &(base_data.unchecked()(0, 0));
         index_->SetLearnBaseKNN(learn_base_nn_ptr, sq_num, k_dim);
         index_->BuildRoarGraphwithData(sq_num, nullptr, base_num, base_data_ptr, parameters);
+        // index_->BuildRoarGraphwithDatanoConn(sq_num, nullptr, base_num, base_data_ptr, parameters);
     }
 
     void searchIndex(py::array_t<float, py::array::c_style | py::array::forcecast> &q_data, size_t k, uint32_t L_pq,
@@ -63,18 +70,32 @@ class IndexRoarGraph {
         auto items = q_data.unchecked();
         auto res = res_id.mutable_unchecked();
         auto dists = res_dist.mutable_unchecked();
-        
+        // #pragma omp taskloop
 #pragma omp parallel for schedule(dynamic, 1)
             for (size_t qid = 0; qid < q_num; qid++) {
                 const float *query = &items(qid, 0);
-                index_->SearchRoarGraphPy(query, k, qid, L_pq, &res(qid, 0), &dists(qid, 0));
+                uint32_t cmps = index_->SearchRoarGraphPy(query, k, qid, L_pq, &res(qid, 0), &dists(qid, 0));
+                // atomic add cmps to total_cmps
+                #pragma omp atomic
+                total_cmps += cmps;
             }
+    }
+
+    void reset_cmps() {
+        total_cmps = 0;
+    }
+
+    uint32_t get_cmps() {
+        return total_cmps;
     }
 
    private:
     efanna2e::IndexBipartite *index_;
+    uint32_t total_cmps = 0;
     // bool init_ = false;
 };
+
+
 // void Save(std::string filename, efanna2e::IndexBipartite *index_) {
 //     index_->SaveProjectionGraph(filename.c_str());
 //     index_->SaveReorder(filename);
@@ -243,5 +264,7 @@ PYBIND11_MODULE(RoarGraph, m) {
         .def(py::init<const size_t, const size_t, efanna2e::Metric>())
         .def("search", &IndexRoarGraph<float>::searchIndex)
         .def("build", &IndexRoarGraph<float>::buildIndex)
-        .def("setThreads", &IndexRoarGraph<float>::setThreads);
+        .def("setThreads", &IndexRoarGraph<float>::setThreads)
+        .def("reset_cmps", &IndexRoarGraph<float>::reset_cmps)
+        .def("get_cmps", &IndexRoarGraph<float>::get_cmps);
 }

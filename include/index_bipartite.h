@@ -115,7 +115,7 @@ class IndexBipartite : public Index {
 
     void SetLearnBaseKNN(const uint32_t* learn_base_knn, uint32_t npts, uint32_t k_dim);
 
-    void SearchRoarGraphPy(const float *query, size_t k, size_t &qid, uint32_t L_pq,
+    uint32_t SearchRoarGraphPy(const float *query, size_t k, size_t &qid, uint32_t L_pq,
                                                unsigned *indices, float* res_dists);
 
     void LoadBaseLearnKNN(const char *filename);

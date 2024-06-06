@@ -22,6 +22,7 @@ module = Pybind11Extension('RoarGraph',
                       ],
              include_dirs=include_dirs,
             #  libraries=['mysteryann'],
+             libraries=['faiss_avx2'],
              language='c++')
 # module = [Pybind11Extension(
 #         "python_example",
@@ -62,11 +63,11 @@ def cpp_flag(compiler):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'unix': ['-Ofast', '-fopenmp',
-                #  '-DNDEBUG', 
-                 '-DDEBUG', '-g',
+        'unix': ['-O3', '-fopenmp',
+                 '-DNDEBUG', 
+                #  '-DDEBUG', '-g', # uncomment this line if you want to debug
                  '-march=native', '-mtune=native', '-ftree-vectorize','-Wall', '-DINFO', '-mavx2', 
-                #  '-mavx512f', '-mavx512cd', '-mavx512dq', '-mavx512bw', '-mavx512vl'
+                #  '-mavx512f', '-mavx512cd', '-mavx512dq', '-mavx512bw', '-mavx512vl' # uncomment this line if you have avx512
                  ],  # , '-w'
     }
     
