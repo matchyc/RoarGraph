@@ -2,13 +2,13 @@
 
 # check if the dataset is provided
 if [ -z "$1" ]; then
-    echo "Please provide the dataset name with t2i-10M | laion-10M | webvid-2.5M"
+    echo "Please provide the dataset name with t2i-10M | laion-10M | clip-webvid-2.5M"
     exit 1
 fi
 
 # check if the dataset is valid
-if [ "$1" != "t2i-10M" ] && [ "$1" != "laion-10M" ] && [ "$1" != "webvid-2.5M" ]; then
-    echo "Invalid dataset name in [t2i-10M, laion-10M, webvid-2.5M]"
+if [ "$1" != "t2i-10M" ] && [ "$1" != "laion-10M" ] && [ "$1" != "clip-webvid-2.5M" ]; then
+    echo "Invalid dataset name in [t2i-10M, laion-10M, clip-webvid-2.5M]"
     exit 1
 fi
 
@@ -54,8 +54,8 @@ elif [ "$1" == "laion-10M" ]; then
         curl -o data/$1/query.10k.fbin https://zenodo.org/records/11090378/files/laion.query.10k.fbin
         curl -o data/$1/gt.10k.ibin https://zenodo.org/records/11090378/files/laion.gt.10k.ibin
     fi
-elif [ "$1" == "webvid-2.5M" ]; then
-    echo "dataset webvid"
+elif [ "$1" == "clip-webvid-2.5M" ]; then
+    echo "dataset clip-webvid"
     if [ ! -e ./data/clip-webvid-2.5M/base.2.5M.fbin ]; then
         wget -O ./data/clip-webvid-2.5M/base.2.5M.fbin https://zenodo.org/records/11090378/files/clip.webvid.base.2.5M.fbin
         # you can run prepare_for_clip_webvid on your own to generate base.2.5M.fbin.
