@@ -2621,6 +2621,9 @@ void IndexBipartite::SaveProjectionGraph(const char *filename) {
 // gt file: base in query
 void IndexBipartite::LoadLearnBaseKNN(const char *filename) {
     std::ifstream in(filename, std::ios::binary);
+    if (!in.is_open()) {
+        throw std::runtime_error("Could not open file " + std::string(filename));
+    }
     uint32_t npts;
     uint32_t k_dim;
     in.read((char *)&npts, sizeof(npts));
