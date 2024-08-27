@@ -6,6 +6,6 @@ authors:
   orcid: "https://orcid.org/0009-0008-7394-7154"
 title: "RoarGraph: A Projected Bipartite Graph for Efficient Cross-Modal Approximate Nearest Neighbor Search"
 version: 1.0.0
-doi: https://doi.org/10.5281/zenodo.11090378
+doi: 10.14778/3681954.3681959
 date-released: 2024-06-05
 url: "https://github.com/matchyc/RoarGraph"
